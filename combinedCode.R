@@ -27,6 +27,10 @@ twoTypes <- pokemon |> drop_na(type2) |> nrow()
 
 ### "Against" Modifiers ####
 
+charizardAgainst <- pokemon |> 
+  filter(name=='Charizard') |> 
+  select(name, attack, against_steel, against_water)
+
 startersAgainst <- pokemon |> 
   filter(pokedex_number==1 | pokedex_number==4 | pokedex_number==7) |> 
   select(name, type1, attack, against_fire, against_electric, against_grass)
