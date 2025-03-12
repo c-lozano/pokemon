@@ -4,6 +4,7 @@ library(tidymodels)
 library(modelsummary)
 library(sandwich)
 library(lmtest)
+library(ggtext)
 
 overwriteFigures <- F # set to T to write new figures to ../figures/
 
@@ -190,6 +191,38 @@ for (t in 2:length(unique(genTypes$type))){
     mutate(predictor=str_replace_all(predictor,'outOf','new species'))
 }
 
+#### Plotting ####
+
+genCoefs_plotting <- genCoefs |>
+  select(type,`Pr(>|t|)`) |> 
+  mutate(predictor='generation',.before=2) |> 
+  mutate(regression='No controls')
+
+pvals <- genCoefs_num |> 
+  select(type,predictor,`Pr(>|t|)`) |> 
+  mutate(regression='Controlled for total species number') |> 
+  bind_rows(genCoefs_plotting) |> 
+  rename(p=`Pr(>|t|)`)
+
+genPs <- pvals |> 
+  filter(predictor=='generation') |> 
+  select(!predictor) |> 
+  mutate(regression = factor(regression,levels=c('No controls', 'Controlled for total species number'))) |> 
+  ggplot(aes(x=type,y=-log10(p),fill=type))+
+  facet_wrap(~regression)+
+  geom_col()+
+  geom_hline(aes(lty='p = 0.05', yintercept=-log10(0.05)))+
+  labs(y='log<sub>10</sub>(p)',
+       title='p-values for linear regression coefficients for generation')+
+  scale_linetype_manual( name =NULL,
+                         values = 2,
+                         guide = guide_legend(override.aes = list(color = "black")))+
+  scale_fill_discrete(guide='none')+
+  theme_bw()+
+  theme(axis.title.y = element_markdown(),
+        axis.text.x = element_text(angle=45,vjust=1,hjust=1))
+
+
 ## Attack Modifiers and Types ####
 
 ### Data Visualization ####
@@ -250,6 +283,7 @@ if(overwriteFigures){
             'meanPropTypes',
             'totalSpeciesPerType',
             'newSpeciesNumOverGens',
+            'genPs',
             'confMatHeatmap',
             'attackModsByType')
   
@@ -258,15 +292,16 @@ if(overwriteFigures){
                 'new species type mean props',
                 'total species per type',
                 'total new species over gens',
+                'regression p values',
                 'confusion matrix heatmap of model predictions',
                 'attack modifiers by attacker and opponent type')
   
   folderpath <- paste(getwd(),'/figures/', sep='')
   dir.create(folderpath)
   
-  widths <- c(rep(2200,6),4300)
-  heights <- c(rep(1440,6),1600)
-  ress <- c(rep(250,7))
+  widths <- c(rep(2200,7),4300)
+  heights <- c(rep(1440,7),1600)
+  ress <- c(rep(250,8))
   
   for (i in 1:length(figs)) {
     fig <- figs[i]
